@@ -112,7 +112,7 @@
   https://github.com/PaulStoffregen/Time (rev 1.5)
   https://github.com/adafruit/RTClib (rev 1.2.0)
   https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
-  https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
+  https://github.com/fasteddy 516/ButtonEvents  (rev 1.0.1)
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.3)
 
 */
@@ -339,7 +339,10 @@ void setup()
   pinMode(PSI_MEASURE, INPUT);
 
   //String for MAC address of Ethernet shield for the log & XML file
+  //sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
   sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
+
+
 
   //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
   wdt_enable(WDTO_8S);

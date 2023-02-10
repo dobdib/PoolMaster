@@ -98,11 +98,12 @@ DallasTemperature sensors_A(&oneWire_A);
 #define TEMPERATURE_RESOLUTION 12
 
 //MAC Address of DS18b20 water temperature sensor
-DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
+//DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
+DeviceAddress DS18b20_0 = { 0x28, 0xEB, 0xAB, 0x23, 0x0C, 0x00, 0x00, 0xCF };
 String sDS18b20_0;
 
 String sArduinoMac;
-//IPAddress ip(192, 168, 0, 188);  //IP address, needs to be adapted depending on local network topology
+IPAddress ip(192, 168, 0, 3);  //IP address, needs to be adapted depending on local network topology
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -134,12 +135,14 @@ struct StoreStruct
   7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.11, 0.0,
   2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
   100.0, 100.0, 20.0, 20.0, 1.5, 3.0,
-  {192, 168, 0, 188}, {255, 255, 255, 0}, {192, 168, 0, 254}, {8, 8, 8, 8}, {0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68},
-  0
+  {192, 168, 0, 3}, {255, 255, 255, 0}, {192, 168, 0, 1}, {8, 8, 8, 8}, {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED},
+  1
 };
 
   // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-  byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with Ethernet shield
+  //byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with Ethernet shield
+  byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+
 /*
   //MQTT stuff including local broker/server IP address, login and pwd
   MQTTClient MQTTClient;
@@ -162,18 +165,18 @@ struct StoreStruct
 
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
-const char* MqttServerIP = "192.168.0.38";
+const char* MqttServerIP = "192.168.0.14";
 //const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
-const char* PoolTopicMeas1 = "Home/Pool/Meas1";
-const char* PoolTopicMeas2 = "Home/Pool/Meas2";
-const char* PoolTopicSet1 = "Home/Pool/Set1";
-const char* PoolTopicSet2 = "Home/Pool/Set2";
-const char* PoolTopicSet3 = "Home/Pool/Set3";
-const char* PoolTopicSet4 = "Home/Pool/Set4";
-const char* PoolTopicSet5 = "Home/Pool/Set5";
-const char* PoolTopicAPI = "Home/Pool/API";
-const char* PoolTopicStatus = "Home/Pool/status";
-const char* PoolTopicError = "Home/Pool/Err";
+const char* MqttServerLogin = "mqtt";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = "mqtt"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* PoolTopicMeas1 = "home/Pool/Meas1";
+const char* PoolTopicMeas2 = "home/Pool/Meas2";
+const char* PoolTopicSet1 = "home/Pool/Set1";
+const char* PoolTopicSet2 = "home/Pool/Set2";
+const char* PoolTopicSet3 = "home/Pool/Set3";
+const char* PoolTopicSet4 = "home/Pool/Set4";
+const char* PoolTopicSet5 = "home/Pool/Set5";
+const char* PoolTopicAPI = "home/Pool/API";
+const char* PoolTopicStatus = "home/Pool/status";
+const char* PoolTopicError = "home/Pool/Err";
