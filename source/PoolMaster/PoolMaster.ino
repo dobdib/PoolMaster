@@ -270,10 +270,15 @@ void setup()
   Serial.begin(57600);
   delay(200);
 
-  //Nextion TFT
-  myNex.begin(9600);
-  ResetTFT();
+  DEBUG_PRINT("-- Setup --");
+  DEBUG_PRINT("   -- Setup : Nextion");
 
+  // Désactivation du reset automatique du TFT au démarrage de l'Arduino sinon plantage
+  //Nextion TFT
+  //myNex.begin(9600);
+  //ResetTFT();
+
+  DEBUG_PRINT("     -- Setup : Init EEPROM");
   //Initialize Eeprom
   EEPROM.setMemPool(memoryBase, EEPROMSizeMega);
 
@@ -294,17 +299,20 @@ void setup()
     saveConfig();//First time use. Save default values to eeprom
   }
 
+  DEBUG_PRINT("   -- Setup : Init Pump");
   //Initialize pump objects with stored config data
   PhPump.SetFlowRate(storage.pHPumpFR);
   PhPump.SetTankVolume(storage.pHTankVol);
   ChlPump.SetFlowRate(storage.ChlPumpFR);
   ChlPump.SetTankVolume(storage.ChlTankVol);
 
+  DEBUG_PRINT("   -- Setup : Init LCD");
   // set up the I2C LCD
   lcd.init();                      // initialize the lcd
   lcd.backlight();
 
   //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
+  DEBUG_PRINT("   -- Setup : Check Controllino");
 #if defined(CONTROLLINO_MAXI)
   Controllino_RTC_init(0);
   setTime((uint8_t)Controllino_GetHour(), (uint8_t)Controllino_GetMinute(), (uint8_t)Controllino_GetSecond(), (uint8_t)Controllino_GetDay(), (uint8_t)Controllino_GetMonth(), (uint8_t)Controllino_GetYear() + 2000);
@@ -321,6 +329,7 @@ void setup()
   }
 #endif
 
+  DEBUG_PRINT("   -- Setup : Init PIN");
   //Define pins directions
   pinMode(FILTRATION_PUMP, OUTPUT);
   pinMode(PH_PUMP, OUTPUT);
@@ -344,7 +353,14 @@ void setup()
   pinMode(PH_MEASURE, INPUT);
   pinMode(PSI_MEASURE, INPUT);
 
+  //String for MAC address of Ethernet shield for the log & XML file
+  //sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
+  sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
 
+  //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
+  wdt_enable(WDTO_8S);
+
+  DEBUG_PRINT("   -- Setup : Init Ethernet");
   // initialize Ethernet device
   // if the ip config is the default one, use DHCP to allocate an ip otherwise use the eeprom-stored config
   if (!storage.ipConfiged)
@@ -363,12 +379,14 @@ void setup()
   //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
   wdt_enable(WDTO_8S);
 
+  DEBUG_PRINT("   -- Setup : Start server");
   // start to listen for clients
   server.begin();
 
   // Initialize the Bonjour/MDNS library. You can now reach or ping this
   // hardware via the host name "PoolMaster.local", provided that your operating
   // system is Bonjour-enabled (such as MacOS X).
+  DEBUG_PRINT("   -- Setup : Init bonjour");
   EthernetBonjour.begin("PoolMaster");
 
   // Now let's register the service we're offering (a web service) via Bonjour!
@@ -391,6 +409,7 @@ void setup()
   //Start temperature measurement state machine
   gettemp.next(gettemp_start);
 
+  DEBUG_PRINT("   -- Setup : Init LED");
   // Set status LEDS Correct at power-on
   if (!PSIError && !PhPump.UpTimeError && !ChlPump.UpTimeError) {
     digitalWrite(bGREEN_LED_PIN, true);
@@ -403,6 +422,7 @@ void setup()
   if (storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     FiltrationPump.Start();
 
+  DEBUG_PRINT("   -- Setup : Init MQTT");
   //Init MQTT
   MQTTClient.setOptions(60, false, 6000);
   MQTTClient.setWill(PoolTopicStatus, "offline", true, LWMQTT_QOS1);
@@ -411,8 +431,10 @@ void setup()
   MQTTClient.onMessage(messageReceived);
   MQTTConnect();
 
+  DEBUG_PRINT("   -- Setup : Publish settings");
   PublishSettings();
 
+  DEBUG_PRINT("   -- Setup : Init Button");
   //Initialize the front panel push-button object
 
   myButton.attach(PUSH_BUTTON_PIN);
@@ -434,6 +456,7 @@ void setup()
   // have hold events trigger more quickly.
   myButton.holdTime(2000); // require button to be held for 2000ms before triggering a hold event
 
+  DEBUG_PRINT("   -- Setup : Init PIDS");
   //Initialize PIDs
   storage.PhPIDwindowStartTime = millis();
   storage.OrpPIDwindowStartTime = millis();
@@ -456,6 +479,7 @@ void setup()
   PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit * 1000);
   ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit * 1000);
 
+  DEBUG_PRINT("   -- Setup : Init Filtration");
   //Initialize Filtration schedule
   storage.FiltrationDuration = 12;
   storage.FiltrationStop = storage.FiltrationStart + storage.FiltrationDuration;
@@ -501,6 +525,7 @@ time_t syncTimeRTC() {
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 void MQTTConnect()
 {
+  DEBUG_PRINT("-- MQTTConnect --");
   //MQTTClient.connect(MqttServerClientID);
   MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
   /*  int8_t Count=0;
@@ -514,7 +539,7 @@ void MQTTConnect()
   if (MQTTClient.connected())
   {
     MQTTConnection = true;
-
+    
     //String PoolTopicAPI = "Home/Pool/Api";
     //Topic to which send/publish API commands for the Pool controls
     MQTTClient.subscribe(PoolTopicAPI);
@@ -540,6 +565,7 @@ void MQTTConnect()
 //Add the received command to a message queue for later processing and exit the callback
 void messageReceived(String &topic, String &payload)
 {
+  DEBUG_PRINT("-- messageReceived --");
   String TmpStrPool(PoolTopicAPI);
 
   //Pool commands. This check might be redundant since we only subscribed to this topic
@@ -560,6 +586,7 @@ void messageReceived(String &topic, String &payload)
 //Loop to check Button
 void ButtonCallback(Task* me)
 {
+  DEBUG_PRINT("-- ButtonCallback --");
   //Read the front panel push-button
 
   // The update() method returns true if an event or state change occurred.  It serves as a passthru
@@ -608,23 +635,31 @@ void ButtonCallback(Task* me)
 //Loop where various tasks are updated/handled
 void GenericCallback(Task* me)
 {
+  DEBUG_PRINT("-- GenericCallback --");
   //clear watchdog timer
   wdt_reset();
   //Serial<<F("Watchdog Reset")<<_endl;
 
+  DEBUG_PRINT("   >> GenericCallback : bonjour");
   //run the MDNS / Bonjour! module
   EthernetBonjour.run();
 
   //request temp reading
+  DEBUG_PRINT("   >> GenericCallback: getTemp");
   gettemp.run();
 
   //Update MQTT thread
+  DEBUG_PRINT("   >> GenericCallback: MQTTClient");
   MQTTClient.loop();
 
   //UPdate Nextion TFT
-  UpdateTFT();
+  //  DEBUG_PRINT("start UpdateTFT");
+  DEBUG_PRINT("   >> GenericCallback: UpdateTFT");
+  //UpdateTFT();
+  //  DEBUG_PRINT("stop UpdateTFT");
 
   //If any error flag is true, blink Red push-button LED
+  DEBUG_PRINT("   >> GenericCallback: PhPump");
   if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
   {
     digitalWrite(bGREEN_LED_PIN, false);
@@ -769,6 +804,7 @@ void GenericCallback(Task* me)
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
 void PublishDataCallback(Task* me)
 {
+  DEBUG_PRINT("-- PublishDataCallback --");
   //Store the GPIO states in one Byte (more efficient over MQTT)
   EncodeBitmap();
 
@@ -883,7 +919,7 @@ void PublishSettings()
     root.set<uint8_t>(F("FDu"), (uint8_t)storage.FiltrationDuration);//Computed filtration duration based on water temperature (hours)
     root.set<uint8_t>(F("FStoM"), (uint8_t)storage.FiltrationStopMax);//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
     root.set<uint8_t>(F("FSto"), (uint8_t)storage.FiltrationStop);//Computed filtration stop hour, equal to FSta + FDu (hour)
-    root.set<uint8_t>(F("Dpid"), (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)
+    root.set<uint8_t>(F("Dpid"), (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)  
     root.set<uint8_t>(F("pHUTL"), (uint8_t)(storage.PhPumpUpTimeLimit / 60)); //Max allowed daily run time for the pH pump (/!\ mins)
     root.set<uint8_t>(F("ChlUTL"), (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); //Max allowed daily run time for the Chl pump (/!\ mins)
 
@@ -1258,7 +1294,7 @@ bool loadConfig()
   Serial << storage.AcidFill << ", " << storage.ChlFill << ", " << storage.pHTankVol << ", " << storage.ChlTankVol << ", " << storage.pHPumpFR << ", " << storage.ChlPumpFR << '\n';
   Serial << storage.ip[0] << "." << storage.ip[1] << "." << storage.ip[2] << "." << storage.ip[3] << ", " << storage.subnet[0] << "." << storage.subnet[1] << "." << storage.subnet[2] << "." << storage.subnet[3] << ", " << storage.gateway[0] << "." << storage.gateway[1] << "." << storage.gateway[2] << "." << storage.gateway[3] << ", " << storage.dnsserver[0] << "." << storage.dnsserver[1] << "." << storage.dnsserver[2] << "." << storage.dnsserver[3] << ", " << _HEX(storage.mac[0]) << "."  << _HEX(storage.mac[1]) << "." << _HEX(storage.mac[2]) << "." << _HEX(storage.mac[3]) << "." << _HEX(storage.mac[4]) << "." << _HEX(storage.mac[5]) << '\n';
   Serial << storage.ipConfiged << '\n' << '\n';
-
+  
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
 
